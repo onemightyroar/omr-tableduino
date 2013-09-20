@@ -1,3 +1,4 @@
+
 // Define our light controller argument structure
 struct lightControllerArgs {
     uint8_t red;
@@ -18,10 +19,10 @@ Ultrasonic ultrasounds[] = {
 };
 
 // Define the OMR logo's "m" pixel location as a range
-uint8_t b_pixels[11] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+uint8_t m_pixels[6] = { 0, 1, 2, 3, 4, 5 };
 
 // Define the OMR sign's "background" pixel location as a range
-uint16_t m_pixels[8] = { 11, 12, 13, 14, 15, 16, 17, 18 };
+uint16_t b_pixels[8] = { 6, 7, 8, 9, 10, 11, 12, 13 };
 // Define an animation callback
 Callback currentAnimation = NULL;
 
@@ -236,6 +237,11 @@ void animateBackgroundPixels(char action[], uint8_t R, uint8_t G, uint8_t B, uin
         }
 
     } else if (str_action.equals("sensor-mode\0")) {
+
+        if (delayTime == 0) {
+            delayTime = 1;
+        }
+        //Grab our first sensor
         Ultrasonic ultrasonic1 = ultrasounds[0];
         
         float cmMsec1;
@@ -247,15 +253,15 @@ void animateBackgroundPixels(char action[], uint8_t R, uint8_t G, uint8_t B, uin
         
         const int numReadings = 10;
 
-        int red_avg[numReadings];      // the readings from the analog input
+        int red_avg[numReadings];      
         int green_avg[numReadings];
         
-        int index = 0;                  // the index of the current reading
+        int index = 0;                  
         
-        int total_red = 0;                  // the running total
+        int total_red = 0;                  
         int total_green = 0;
         
-        int average_red = 0;        // the average
+        int average_red = 0;        
         int average_green = 0;
         
         for (int thisReading = 0; thisReading < numReadings; thisReading++){
@@ -265,22 +271,11 @@ void animateBackgroundPixels(char action[], uint8_t R, uint8_t G, uint8_t B, uin
 
         }
         
-
-        
         total_red = (total_red - red_avg[index]);
         total_green = (total_green - green_avg[index]);
 
-        // read from the sensor:
-       
-
-      
         cmMsec1 = ultrasonic1.convert(microsec1, Ultrasonic::CM);
       
-        // Set a sensible default
-        if (delayTime == 0) {
-            delayTime = 1;
-        }
-        
         if (cmMsec1 > 50.0) {
           red_avg[index] = 255;
           green_avg[index] = 0;
@@ -295,21 +290,12 @@ void animateBackgroundPixels(char action[], uint8_t R, uint8_t G, uint8_t B, uin
             blue = 255 - (255/((cmMsec1/255)*cmMsec1));
          }
          
-                 
-        // add the reading to the total:
-        
         total_red= total_red + red_avg[index];
         total_green= total_green + green_avg[index];
         
-        // advance to the next position in the array:
-        
         index = index + 1;
         
-        // if we’re at the end of the array…
-        
         if (index >= numReadings)    {
-        
-        // …wrap around to the beginning:
         
         index = 0;
         
@@ -325,12 +311,85 @@ void animateBackgroundPixels(char action[], uint8_t R, uint8_t G, uint8_t B, uin
         }
 
         strip.show();
-        
-        //delay(delayTime);
+        delay(delayTime);
 
-    } 
-    
-    else {
+    } else if (str_action.equals("detect-mode\0")) {
+        if (delayTime == 0) {
+            delayTime = 1;
+        }
+
+        //Grab our first sensor
+        Ultrasonic ultrasonic1 = ultrasounds[0];
+        
+        float cmMsec1;
+        long microsec1 = ultrasonic1.timing();
+
+        cmMsec1 = ultrasonic1.convert(microsec1, Ultrasonic::CM);
+      
+        if (cmMsec1 < 20.0) {
+            uint8_t red = R;
+            uint8_t green = G;
+            uint8_t blue = B;
+
+            // Fade out
+            while (red > 0 || green > 0 || blue > 0) {
+                // Create our color from our RGB values
+                uint32_t color = Color(red, green, blue);
+
+                // Only light up one
+                strip.setPixelColor(b_pixels[0], color);
+
+                strip.show();
+
+                // Decrement our values
+                if (red > 0) {
+                    red--;
+                }
+                if (green > 0) {
+                    green--;
+                }
+                if (blue > 0) {
+                    blue--;
+                }
+
+                delay(delayTime);
+            }
+
+            // Fade in
+            while (red < R || green < G || blue < B) {
+                // Create our color from our RGB values
+                uint32_t color = Color(red, green, blue);
+
+                // Only light up one
+                strip.setPixelColor(b_pixels[0], color);
+
+                strip.show();
+
+                // Decrement our values
+                if (red < R) {
+                    red++;
+                }
+                if (green < G) {
+                    green++;
+                }
+                if (blue < B) {
+                    blue++;
+                }
+
+                delay(delayTime);
+            }
+        } else {
+          
+            uint32_t color = Color(0, 0, 0);
+
+            // turn off
+            strip.setPixelColor(b_pixels[0], color);
+            
+            strip.show();
+            delay(delayTime);
+        }
+
+    } else {
         // Set a sensible default
         if (delayTime == 0) {
             delayTime = 160;
@@ -496,47 +555,164 @@ void animateMPixels(char action[], uint8_t R, uint8_t G, uint8_t B, uint16_t del
 
     } 
     else if (str_action.equals("sensor-mode\0")) {
+        if (delayTime == 0) {
+            delayTime = 1;
+        }
+        //Grab our first sensor
         Ultrasonic ultrasonic1 = ultrasounds[0];
         
-        float cmMsec, inMsec;
-        long microsec = ultrasonic1.timing();
-      
-        cmMsec = ultrasonic1.convert(microsec, Ultrasonic::CM);
-        inMsec = ultrasonic1.convert(microsec, Ultrasonic::IN);
-      
-        // Set a sensible default
-        if (delayTime == 0) {
-            delayTime = 160;
+        float cmMsec1;
+        long microsec1 = ultrasonic1.timing();
+        
+        uint8_t red;
+        uint8_t green;
+        uint8_t blue;
+        
+        const int numReadings = 10;
+
+        int red_avg[numReadings];      
+        int green_avg[numReadings];
+        
+        int index = 0;                  
+        
+        int total_red = 0;                  
+        int total_green = 0;
+        
+        int average_red = 0;        
+        int average_green = 0;
+        
+        for (int thisReading = 0; thisReading < numReadings; thisReading++){
+
+          red_avg[thisReading] = 0;
+          green_avg[thisReading] = 0;
+
         }
         
-        if (cmMsec < 20.0) {
+        total_red = (total_red - red_avg[index]);
+        total_green = (total_green - green_avg[index]);
 
-          // Loop through each pixel in the "m"
-          for (int8_t i = m_pixels_length; i >= 0; i -= 2) {
-              if (i != m_pixels_length) {
-                  strip.setPixelColor(m_pixels[i], blackColor);
-              }
-  
-              strip.setPixelColor(m_pixels[i - 1], color);
-          }
-  
-          strip.show();
-          delay(delayTime);
-  
-          for (int8_t i = (m_pixels_length - 1); i >= 0; i -= 2) {
-              strip.setPixelColor(m_pixels[i], blackColor);
-  
-              if (i != 0) {
-                  strip.setPixelColor(m_pixels[i - 1], color);
-              }
-          }
-  
-          strip.show();
-          delay(delayTime);
+        cmMsec1 = ultrasonic1.convert(microsec1, Ultrasonic::CM);
+      
+        if (cmMsec1 > 50.0) {
+          red_avg[index] = 255;
+          green_avg[index] = 0;
+          blue = 0;
+        } else if (cmMsec1 < 50.0 && cmMsec1 > 20.0) {
+            red_avg[index] = (255/((cmMsec1/255)*cmMsec1));
+            green_avg[index] = 255 - (255/((cmMsec1/255)*cmMsec1));
+            blue = 0;
+        } else {
+            red_avg[index] = 0;
+            green_avg[index] = (255/((cmMsec1/255)*cmMsec1));
+            blue = 255 - (255/((cmMsec1/255)*cmMsec1));
+         }
+         
+        total_red= total_red + red_avg[index];
+        total_green= total_green + green_avg[index];
+        
+        index = index + 1;
+        
+        if (index >= numReadings)    {
+        
+        index = 0;
+        
+        }
+        
+        average_red = total_red / numReadings;
+        average_green = total_green / numReadings;
+        
+        uint32_t color = Color(average_red, average_green, blue);
+        
+        for (uint8_t i = 0; i < m_pixels_length; i++) {
+            strip.setPixelColor(m_pixels[i], color);
         }
 
-    } 
-    else {
+        strip.show();
+        delay(delayTime);
+
+    } else if (str_action.equals("detect-mode\0")) {
+        if (delayTime == 0) {
+            delayTime = 1;
+        }
+
+        //Grab our first sensor
+        Ultrasonic ultrasonic1 = ultrasounds[0];
+        
+        float cmMsec1;
+        long microsec1 = ultrasonic1.timing();
+
+        cmMsec1 = ultrasonic1.convert(microsec1, Ultrasonic::CM);
+      
+        if (cmMsec1 < 40.0) {
+            uint8_t red = R;
+            uint8_t green = G;
+            uint8_t blue = B;
+
+            // Fade out
+            while (red > 0 || green > 0 || blue > 0) {
+                // Create our color from our RGB values
+                uint32_t color = Color(red, green, blue);
+
+                // Loop through each pixel
+                for (uint8_t i = 0; i < m_pixels_length; i++) {
+                    strip.setPixelColor(m_pixels[i], color);
+                }
+
+                strip.show();
+
+                // Decrement our values
+                if (red > 0) {
+                    red--;
+                }
+                if (green > 0) {
+                    green--;
+                }
+                if (blue > 0) {
+                    blue--;
+                }
+
+                delay(delayTime);
+            }
+
+            // Fade in
+            while (red < R || green < G || blue < B) {
+                // Create our color from our RGB values
+                uint32_t color = Color(red, green, blue);
+
+                // Loop through each pixel
+                for (uint8_t i = 0; i < m_pixels_length; i++) {
+                    strip.setPixelColor(m_pixels[i], color);
+                }
+
+                strip.show();
+
+                // Decrement our values
+                if (red < R) {
+                    red++;
+                }
+                if (green < G) {
+                    green++;
+                }
+                if (blue < B) {
+                    blue++;
+                }
+
+                delay(delayTime);
+            }
+        } else {
+          
+            uint32_t color = Color(0, 0, 0);
+
+            // Turn off
+            for (uint8_t i = 0; i < m_pixels_length; i++) {
+                strip.setPixelColor(m_pixels[i], color);
+                
+                strip.show();
+                delay(delayTime);
+            }
+        }
+
+    } else {
         // Set a sensible default
         if (delayTime == 0) {
             delayTime = 160;

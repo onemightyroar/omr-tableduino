@@ -1,5 +1,5 @@
 /* Define Constants */
-#define WEBDUINO_AUTH_REALM             "OMRSign"
+#define WEBDUINO_AUTH_REALM             "OMRTable"
 #define WEBDUINO_FAIL_MESSAGE           ""
 #define WEBDUINO_AUTH_MESSAGE           ""
 #define WEBDUINO_SERVER_ERROR_MESSAGE   ""
@@ -24,7 +24,7 @@
 
 
 /* Include our OMRSign app code */
-#include "OMRSign.h"
+#include "OMRTable.h"
 
 
 // Define our network addresses
